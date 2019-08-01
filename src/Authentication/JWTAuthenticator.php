@@ -245,10 +245,12 @@ class JWTAuthenticator extends MemberAuthenticator
         // Create builder for this record
         $builder = new Builder();
         $token = $builder
-            // Configures the issuer (iss claim)
-            ->issuedBy($request->getHeader('Origin'))
-            // Configures the audience (aud claim)
-            ->permittedFor(Director::absoluteBaseURL())
+// for now don't set these claims - gd
+//            // Configures the issuer (iss claim)
+//            ->setIssuer($request->getHeader('Origin'))
+//            // Configures the audience (aud claim)
+//            ->setAudience(Director::absoluteBaseURL())
+// ^^ the above line in HEAD was ->permittedFor not ->setAudience
             // Configures the id (jti claim), replicating as a header item
             ->identifiedBy($uniqueID)->withHeader('jti', $uniqueID)
             // Configures the time that the token was issue (iat claim)
