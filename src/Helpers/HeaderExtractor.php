@@ -17,7 +17,7 @@ trait HeaderExtractor
      */
     protected static function getAuthorizationHeader(HTTPRequest $request): ?string
     {
-        $authHeader = $request->getHeader('Application-Authorization');
+        $authHeader = $request->getHeader('Authorization');
         if ($authHeader && preg_match('/Bearer\s+(?<token>.*)$/i', $authHeader, $matches)) {
             return $matches['token'];
         }
