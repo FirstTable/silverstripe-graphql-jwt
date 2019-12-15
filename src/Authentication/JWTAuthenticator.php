@@ -248,7 +248,7 @@ class JWTAuthenticator extends MemberAuthenticator
             // Configures the issuer (iss claim)
             ->setIssuer($request->getHeader('Origin'))
             // Configures the audience (aud claim)
-            ->setAudience(Director::absoluteBaseURL())
+            //->setAudience(Director::absoluteBaseURL())
             // Configures the id (jti claim), replicating as a header item
             ->identifiedBy($uniqueID)->withHeader('jti', $uniqueID)
             // Configures the time that the token was issue (iat claim)
