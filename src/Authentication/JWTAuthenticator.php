@@ -3,20 +3,31 @@
 namespace Firesphere\GraphQLJWT\Authentication;
 
 use BadMethodCallException;
+use DateInterval;
 use DateTimeImmutable;
+use DateTimeZone;
 use Exception;
 use Firesphere\GraphQLJWT\Extensions\MemberExtension;
 use Firesphere\GraphQLJWT\Helpers\MemberTokenGenerator;
 use Firesphere\GraphQLJWT\Model\JWTRecord;
+use Firesphere\GraphQLJWT\Resolvers\Resolver;
 use Firesphere\GraphQLJWT\Types\TokenStatusEnum;
-use Lcobucci\JWT\Builder;
-use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Token\Builder;
+use Lcobucci\Clock\SystemClock;
+use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Encoding\ChainedFormatter;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Hmac;
 use Lcobucci\JWT\Signer\Key;
+use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa;
 use Lcobucci\JWT\Token;
-use Lcobucci\JWT\ValidationData;
+use Lcobucci\JWT\UnencryptedToken;
+use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
+use Lcobucci\JWT\Validation\Constraint\IssuedBy;
+use Lcobucci\JWT\Validation\Constraint\PermittedFor;
+use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
+use Lcobucci\JWT\Token\RegisteredClaims;
 use LogicException;
 use OutOfBoundsException;
 use SilverStripe\Control\Director;
@@ -24,6 +35,7 @@ use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\ORM\ValidationResult;
@@ -78,7 +90,7 @@ class JWTAuthenticator extends MemberAuthenticator
      * @config
      * @var int
      */
-    private static $nbf_expiration = 3600;
+    private static $nbf_expiration = 30; //TODO: change back to 3600
 
     /**
      * Token can be refreshed within 7 days
@@ -87,6 +99,20 @@ class JWTAuthenticator extends MemberAuthenticator
      * @var int
      */
     private static $nbf_refresh_expiration = 604800;
+
+    /**
+     * @config
+     * @var Config
+     */
+    private $config;
+
+    public function __construct(Configuration $config = null)
+    {
+
+        $this->config = $config ?? Configuration::forSymmetricSigner($this->getSigner(), $this->getPrivateKey());
+    }
+
+    /**
 
     /**
      * Keys are one of:
@@ -168,11 +194,11 @@ class JWTAuthenticator extends MemberAuthenticator
 
         // String key
         if (empty($path)) {
-            return new Key($path);
+            return InMemory::plainText($key);
         }
 
         // Build key from path
-        return new Key('file://' . $path, $password);
+        return InMemory::file('file://' . $path, $password);
     }
 
     /**
@@ -241,32 +267,31 @@ class JWTAuthenticator extends MemberAuthenticator
         }
 
         // Create builder for this record
-        $builder = new Builder();
-        $now = DBDatetime::now()->getTimestamp();
+        $builder = $this->config->builder(ChainedFormatter::withUnixTimestampDates());
         $token = $builder
             // Configures the issuer (iss claim)
-            ->setIssuer($request->getHeader('Origin'))
+            ->issuedBy($request->getHeader('Origin'))
             // Configures the audience (aud claim)
-            //->setAudience(Director::absoluteBaseURL())
+            ->permittedFor(Director::absoluteBaseURL())
             // Configures the id (jti claim), replicating as a header item
-            ->setId($uniqueID, true)
+            ->identifiedBy($uniqueID)->withHeader(RegisteredClaims::ID, $uniqueID)
             // Configures the time that the token was issue (iat claim)
-            ->setIssuedAt($now)
+            ->issuedAt($this->getNow())
             // Configures the time that the token can be used (nbf claim)
-            ->setNotBefore($now + $config->get('nbf_time'))
+            ->canOnlyBeUsedAfter($this->getNowPlus($config->get('nbf_time')))
             // Configures the expiration time of the token (nbf claim)
-            ->setExpiration($now + $config->get('nbf_expiration'))
+            ->expiresAt($this->getNowPlus($config->get('nbf_expiration')))
             // Set renew expiration
-            ->set('rexp', $now + $config->get('nbf_refresh_expiration'))
+            ->withClaim('rexp', $this->getNowPlus($config->get('nbf_refresh_expiration')))
             // Configures a new claim, called "rid"
-            ->set('rid', $record->ID)
+            ->withClaim('rid', $record->ID)
             // Set the subject, which is the member
-            ->setSubject($member->getJWTData())
+            ->relatedTo($member->getJWTData());
             // Sign the key with the Signer's key
-            ->sign($this->getSigner(), $this->getPrivateKey());
+//            ->sign($this->getSigner(), $this->getPrivateKey());
 
         // Return the token
-        return $token->getToken();
+        return $token->getToken($this->config->signer(), $this->config->signingKey());
     }
 
     /**
@@ -280,13 +305,16 @@ class JWTAuthenticator extends MemberAuthenticator
         // Parse token
         $parsedToken = $this->parseToken($token);
         if (!$parsedToken) {
+            echo 'failed 1';exit;
             return [null, TokenStatusEnum::STATUS_INVALID];
         }
 
         // Find local record for this token
         /** @var JWTRecord $record */
-        $record = JWTRecord::get()->byID($parsedToken->getClaim('rid'));
+//        $record = DataObject::get_one(JWTRecord::class, ['UID' => $parsedToken->isIdentifiedBy()]);
+        $record = JWTRecord::get()->byID($parsedToken->claims()->get('rid'));
         if (!$record) {
+            echo 'failed 2';exit;
             return [null, TokenStatusEnum::STATUS_INVALID];
         }
 
@@ -297,17 +325,20 @@ class JWTAuthenticator extends MemberAuthenticator
         }
 
         // If the token is invalid, but not because it has expired, fail
-        $now = new DateTimeImmutable(DBDatetime::now()->getValue());
+        $now = $this->getNow();
         if (!$parsedToken->isExpired($now)) {
+            echo 'failed 3 - ' . $parsedToken->claims()->get(RegisteredClaims::EXPIRATION_TIME)->format('Y-m-d H:i:s');exit;
             return [$record, TokenStatusEnum::STATUS_INVALID];
         }
 
         // If expired, check if it can be renewed
         $canReniew = $this->canTokenBeRenewed($parsedToken);
         if ($canReniew) {
+            echo 'failed 4';exit;
             return [$record, TokenStatusEnum::STATUS_EXPIRED];
         }
 
+//        echo 'failed 5';exit;
         // If expired and cannot be renewed, it's dead
         return [$record, TokenStatusEnum::STATUS_DEAD];
     }
@@ -316,9 +347,9 @@ class JWTAuthenticator extends MemberAuthenticator
      * Parse a string into a token
      *
      * @param string|null $token
-     * @return Token|null
+     * @return UnencryptedToken|null
      */
-    protected function parseToken(?string $token): ?Token
+    protected function parseToken(?string $token): ?UnencryptedToken
     {
         // Ensure token given at all
         if (!$token) {
@@ -326,48 +357,56 @@ class JWTAuthenticator extends MemberAuthenticator
         }
 
         try {
+            $parser = $this->config->parser();
             // Verify parsed token matches signer
-            $parser = new Parser();
             $parsedToken = $parser->parse($token);
+            return $parsedToken;
         } catch (Exception $ex) {
             // Un-parsable tokens are invalid
             return null;
         }
 
         // Verify this token with configured keys
-        $verified = $parsedToken->verify($this->getSigner(), $this->getPublicKey());
-        return $verified ? $parsedToken : null;
+//        $verified = $parsedToken->verify($this->getSigner(), $this->getPublicKey());
+//        return $verified ? $parsedToken : null;
     }
 
     /**
      * Determine if the given token is current, given the context of the current request
      *
-     * @param Token $parsedToken
-     * @param HTTPRequest $request
-     * @param JWTRecord $record
+     * @param UnencryptedToken $parsedToken
+     * @param HTTPRequest      $request
+     * @param JWTRecord        $record
      * @return bool
-     */
-    protected function validateParsedToken(Token $parsedToken, HTTPrequest $request, JWTRecord $record): bool
-    {
-        $now = DBDatetime::now()->getTimestamp();
-        $validator = new ValidationData();
-        $validator->setIssuer($request->getHeader('Origin'));
-        $validator->setAudience(Director::absoluteBaseURL());
-        $validator->setId($record->UID);
-        $validator->setCurrentTime($now);
-        return $parsedToken->validate($validator);
-    }
+     * @throws Exception
+     **/
+     protected function validateParsedToken(UnencryptedToken $parsedToken, HTTPrequest $request, JWTRecord $record): bool
+     {
+     // @todo - upgrade
+     // @see https://lcobucci-jwt.readthedocs.io/en/latest/upgrading/#replace-tokenverify-and-tokenvalidate-with-validation-api
+
+         $this->config->setValidationConstraints(
+//            new IssuedBy($request->getHeader('Origin')),
+            new PermittedFor(Director::absoluteBaseURL()),
+            new IdentifiedBy($record->UID),
+            new StrictValidAt(new SystemClock(new DateTimeZone(date_default_timezone_get())))
+        );
+
+        $validator = $this->config->validator();
+        return $validator->validate($parsedToken, ...$this->config->validationConstraints());
+     }
 
     /**
      * Check if the given token can be renewed
      *
-     * @param Token $parsedToken
+     * @param UnencryptedToken $parsedToken
      * @return bool
      */
-    protected function canTokenBeRenewed(Token $parsedToken): bool
+    protected function canTokenBeRenewed(UnencryptedToken $parsedToken): bool
     {
-        $renewBefore = $parsedToken->getClaim('rexp');
-        $now = DBDatetime::now()->getTimestamp();
+//        $renewBefore = $parsedToken->claims()->get(RegisteredClaims::ISSUED_AT) + $this->config->get('nbf_refresh_expiration');
+        $renewBefore = $parsedToken->claims()->get('rexp');
+        $now = $this->getNow()->getTimestamp();
         return $renewBefore > $now;
     }
 
@@ -406,5 +445,16 @@ class JWTAuthenticator extends MemberAuthenticator
             throw new LogicException("Required environment variable {$key} not set");
         }
         return $default;
+    }
+
+    protected function getNow(): DateTimeImmutable
+    {
+        $clock = new SystemClock(new DateTimeZone(date_default_timezone_get()));
+        return $clock->now();
+    }
+
+    protected function getNowPlus($seconds)
+    {
+        return $this->getNow()->add(new DateInterval(sprintf("PT%dS", $seconds)));
     }
 }

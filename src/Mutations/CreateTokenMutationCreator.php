@@ -96,7 +96,7 @@ class CreateTokenMutationCreator extends MutationCreator implements OperationRes
         // Create new token from this member
         $authenticator = $this->getJWTAuthenticator();
         $token = $authenticator->generateToken($request, $member);
-        return $this->generateResponse(TokenStatusEnum::STATUS_OK, $member, $token->__toString());
+        return $this->generateResponse(TokenStatusEnum::STATUS_OK, $member, $token->toString());
     }
 
     /**

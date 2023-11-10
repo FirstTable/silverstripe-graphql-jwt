@@ -82,6 +82,6 @@ class RefreshTokenMutationCreator extends MutationCreator implements OperationRe
 
         // Create new token for member
         $newToken = $authenticator->generateToken($request, $member);
-        return $this->generateResponse(TokenStatusEnum::STATUS_OK, $member, $newToken->__toString());
+        return $this->generateResponse(TokenStatusEnum::STATUS_OK, $member, $newToken->toString());
     }
 }
