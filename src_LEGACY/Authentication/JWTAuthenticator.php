@@ -11,25 +11,43 @@ use Firesphere\GraphQLJWT\Extensions\MemberExtension;
 use Firesphere\GraphQLJWT\Helpers\MemberTokenGenerator;
 use Firesphere\GraphQLJWT\Model\JWTRecord;
 use Firesphere\GraphQLJWT\Resolvers\Resolver;
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
 use Firesphere\GraphQLJWT\Types\TokenStatusEnum;
 use Lcobucci\JWT\Token\Builder;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Encoding\ChainedFormatter;
+=======
+use Lcobucci\JWT\Encoding\ChainedFormatter;
+use Lcobucci\JWT\Encoding\JoseEncoder;
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Hmac;
 use Lcobucci\JWT\Signer\Key;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa;
 use Lcobucci\JWT\Token;
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
 use Lcobucci\JWT\UnencryptedToken;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
 use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use Lcobucci\JWT\Token\RegisteredClaims;
+=======
+use Lcobucci\JWT\Token\Builder;
+use Lcobucci\JWT\Token\Parser;
+use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
+use Lcobucci\JWT\Validation\Constraint\IssuedBy;
+use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
+use Lcobucci\JWT\Validation\Constraint\PermittedFor;
+use Lcobucci\JWT\Validation\Constraint\RelatedTo;
+use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use Lcobucci\JWT\Validation\Validator;
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
 use LogicException;
 use OutOfBoundsException;
+use Psr\Clock\ClockInterface as Clock;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Config\Configurable;
@@ -194,11 +212,23 @@ class JWTAuthenticator extends MemberAuthenticator
 
         // String key
         if (empty($path)) {
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
             return InMemory::plainText($key);
         }
 
         // Build key from path
         return InMemory::file('file://' . $path, $password);
+=======
+            if ($this->isBase64String($key)) {
+                return InMemory::base64Encoded($key);
+            } else {
+                return InMemory::plainText($key);
+            }
+        }
+
+        // Build key from path
+        return InMemory::file($path, $password);
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
     }
 
     /**
@@ -231,7 +261,7 @@ class JWTAuthenticator extends MemberAuthenticator
         list($record, $status) = $this->validateToken($token, $request);
 
         // Report success!
-        if ($status === TokenStatusEnum::STATUS_OK) {
+        if ($status === Resolver::STATUS_OK) {
             return $record->Member();
         }
 
@@ -251,6 +281,7 @@ class JWTAuthenticator extends MemberAuthenticator
      * @param Member|MemberExtension $member
      * @return Token
      * @throws ValidationException
+     * @throws Exception
      */
     public function generateToken(HTTPRequest $request, Member $member): Token
     {
@@ -267,31 +298,53 @@ class JWTAuthenticator extends MemberAuthenticator
         }
 
         // Create builder for this record
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
         $builder = $this->config->builder(ChainedFormatter::withUnixTimestampDates());
+=======
+        $builder = (new Builder(new JoseEncoder(), ChainedFormatter::default()));
+
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
         $token = $builder
             // Configures the issuer (iss claim)
             ->issuedBy($request->getHeader('Origin'))
             // Configures the audience (aud claim)
             ->permittedFor(Director::absoluteBaseURL())
             // Configures the id (jti claim), replicating as a header item
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
             ->identifiedBy($uniqueID)->withHeader(RegisteredClaims::ID, $uniqueID)
+=======
+            ->identifiedBy($uniqueID)->withHeader('jti', $uniqueID)
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
             // Configures the time that the token was issue (iat claim)
             ->issuedAt($this->getNow())
             // Configures the time that the token can be used (nbf claim)
             ->canOnlyBeUsedAfter($this->getNowPlus($config->get('nbf_time')))
             // Configures the expiration time of the token (nbf claim)
             ->expiresAt($this->getNowPlus($config->get('nbf_expiration')))
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
             // Set renew expiration
+=======
+            // Set renew expiration (unix timestamp)
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
             ->withClaim('rexp', $this->getNowPlus($config->get('nbf_refresh_expiration')))
             // Configures a new claim, called "rid"
             ->withClaim('rid', $record->ID)
             // Set the subject, which is the member
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
             ->relatedTo($member->getJWTData());
             // Sign the key with the Signer's key
 //            ->sign($this->getSigner(), $this->getPrivateKey());
 
         // Return the token
         return $token->getToken($this->config->signer(), $this->config->signingKey());
+=======
+            ->relatedTo($member->getJWTData())
+            // Sign the key with the Signer's key
+            ->getToken($this->getSigner(), $this->getPrivateKey());
+
+        // Return the token
+        return $token;
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
     }
 
     /**
@@ -305,42 +358,61 @@ class JWTAuthenticator extends MemberAuthenticator
         // Parse token
         $parsedToken = $this->parseToken($token);
         if (!$parsedToken) {
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
             echo 'failed 1';exit;
             return [null, TokenStatusEnum::STATUS_INVALID];
+=======
+            return [null, Resolver::STATUS_INVALID];
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
         }
 
         // Find local record for this token
         /** @var JWTRecord $record */
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
 //        $record = DataObject::get_one(JWTRecord::class, ['UID' => $parsedToken->isIdentifiedBy()]);
         $record = JWTRecord::get()->byID($parsedToken->claims()->get('rid'));
         if (!$record) {
             echo 'failed 2';exit;
             return [null, TokenStatusEnum::STATUS_INVALID];
+=======
+        $record = JWTRecord::get()->byID($parsedToken->claims()->get('rid'));
+        if (!$record) {
+            return [null, Resolver::STATUS_INVALID];
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
         }
 
         // Verified and valid = ok!
         $valid = $this->validateParsedToken($parsedToken, $request, $record);
         if ($valid) {
-            return [$record, TokenStatusEnum::STATUS_OK];
+            return [$record, Resolver::STATUS_OK];
         }
 
         // If the token is invalid, but not because it has expired, fail
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
         $now = $this->getNow();
         if (!$parsedToken->isExpired($now)) {
             echo 'failed 3 - ' . $parsedToken->claims()->get(RegisteredClaims::EXPIRATION_TIME)->format('Y-m-d H:i:s');exit;
             return [$record, TokenStatusEnum::STATUS_INVALID];
+=======
+        if ((new Validator())->validate($parsedToken, new LooseValidAt($this->getClock()))) {
+            return [$record, Resolver::STATUS_INVALID];
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
         }
 
         // If expired, check if it can be renewed
         $canReniew = $this->canTokenBeRenewed($parsedToken);
         if ($canReniew) {
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
             echo 'failed 4';exit;
             return [$record, TokenStatusEnum::STATUS_EXPIRED];
+=======
+            return [$record, Resolver::STATUS_EXPIRED];
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
         }
 
 //        echo 'failed 5';exit;
         // If expired and cannot be renewed, it's dead
-        return [$record, TokenStatusEnum::STATUS_DEAD];
+        return [$record, Resolver::STATUS_DEAD];
     }
 
     /**
@@ -359,6 +431,10 @@ class JWTAuthenticator extends MemberAuthenticator
         try {
             $parser = $this->config->parser();
             // Verify parsed token matches signer
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
+=======
+            $parser = new Parser(new JoseEncoder());
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
             $parsedToken = $parser->parse($token);
             return $parsedToken;
         } catch (Exception $ex) {
@@ -367,8 +443,15 @@ class JWTAuthenticator extends MemberAuthenticator
         }
 
         // Verify this token with configured keys
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
 //        $verified = $parsedToken->verify($this->getSigner(), $this->getPublicKey());
 //        return $verified ? $parsedToken : null;
+=======
+        $validator = new Validator();
+        $verified = $validator->validate($parsedToken, new SignedWith($this->getSigner(), $this->getPublicKey()));
+
+        return $verified ? $parsedToken : null;
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
     }
 
     /**
@@ -379,6 +462,7 @@ class JWTAuthenticator extends MemberAuthenticator
      * @param JWTRecord        $record
      * @return bool
      * @throws Exception
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
      **/
      protected function validateParsedToken(UnencryptedToken $parsedToken, HTTPrequest $request, JWTRecord $record): bool
      {
@@ -395,19 +479,54 @@ class JWTAuthenticator extends MemberAuthenticator
         $validator = $this->config->validator();
         return $validator->validate($parsedToken, ...$this->config->validationConstraints());
      }
+=======
+     */
+    protected function validateParsedToken(Token $parsedToken, HTTPrequest $request, JWTRecord $record): bool
+    {
+        $validator = new Validator();
+
+        if (!$validator->validate($parsedToken, new IssuedBy($request->getHeader('Origin')))) {
+            // The token was not issued by the given issuer
+            return false;
+        }
+
+        if (!$validator->validate($parsedToken, new PermittedFor(Director::absoluteBaseURL()))) {
+            // The token is not allowed to be used by this audience
+            return false;
+        }
+
+        if (!$validator->validate($parsedToken, new IdentifiedBy($record->UID))) {
+            // The token is not related to the expected subject
+            return false;
+        }
+
+        if (!$validator->validate($parsedToken, new LooseValidAt($this->getClock()))) {
+            // The token is expired
+            return false;
+        }
+
+        return true;
+    }
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
 
     /**
      * Check if the given token can be renewed
      *
      * @param UnencryptedToken $parsedToken
      * @return bool
+     * @throws Exception
      */
     protected function canTokenBeRenewed(UnencryptedToken $parsedToken): bool
     {
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
 //        $renewBefore = $parsedToken->claims()->get(RegisteredClaims::ISSUED_AT) + $this->config->get('nbf_refresh_expiration');
         $renewBefore = $parsedToken->claims()->get('rexp');
         $now = $this->getNow()->getTimestamp();
         return $renewBefore > $now;
+=======
+        $renewBefore = $parsedToken->claims()->get('rexp');
+        return $renewBefore > $this->getNow()->getTimestamp();
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
     }
 
     /**
@@ -447,6 +566,7 @@ class JWTAuthenticator extends MemberAuthenticator
         return $default;
     }
 
+<<<<<<< HEAD:src_LEGACY/Authentication/JWTAuthenticator.php
     protected function getNow(): DateTimeImmutable
     {
         $clock = new SystemClock(new DateTimeZone(date_default_timezone_get()));
@@ -456,5 +576,65 @@ class JWTAuthenticator extends MemberAuthenticator
     protected function getNowPlus($seconds)
     {
         return $this->getNow()->add(new DateInterval(sprintf("PT%dS", $seconds)));
+=======
+    /**
+     * @return DateTimeImmutable
+     * @throws Exception
+     */
+    protected function getNow(): DateTimeImmutable
+    {
+        return new DateTimeImmutable(DBDatetime::now()->getValue());
+    }
+
+    /**
+     * @param int $seconds
+     * @return DateTimeImmutable
+     * @throws Exception
+     */
+    protected function getNowPlus($seconds)
+    {
+        $sec = $seconds;
+        $sec = ($sec < 0) ? abs($sec) : $sec;
+
+        $di = new DateInterval(sprintf("PT%dS", $sec));
+
+        if ($seconds < 0) {
+            $di->invert = 1;
+        }
+
+        return $this->getNow()->add($di);
+    }
+
+    /**
+     * @return Clock
+     */
+    protected function getClock(): Clock
+    {
+        return new class implements Clock {
+            public function now(): DateTimeImmutable
+            {
+                return new DateTimeImmutable(DBDatetime::now()->getValue());
+            }
+        };
+    }
+
+    /**
+     * @param string $string
+     * @return bool
+     */
+    protected function isBase64String(string $string): bool
+    {
+        // Check if there are valid base64 characters
+        if (!preg_match('/^[a-zA-Z0-9\/\r\n+]*={0,2}$/', $string)) return false;
+    
+        // Decode the string in strict mode and check the results
+        $decoded = base64_decode($string, true);
+        if(false === $decoded) return false;
+    
+        // Encode the string again
+        if(base64_encode($decoded) != $string) return false;
+    
+        return true;
+>>>>>>> c00f882754eef77e94c59ff909be585d9d2cba44:src/Authentication/JWTAuthenticator.php
     }
 }
