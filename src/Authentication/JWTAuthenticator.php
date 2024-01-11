@@ -252,11 +252,11 @@ class JWTAuthenticator extends MemberAuthenticator
             // Configures the id (jti claim), replicating as a header item
             ->identifiedBy($uniqueID)->withHeader('jti', $uniqueID)
             // Configures the time that the token was issue (iat claim)
-            ->issuedAt($this->getNow())
+            ->issuedAt($this->getNow()->getTimestamp())
             // Configures the time that the token can be used (nbf claim)
-            ->canOnlyBeUsedAfter($this->getNowPlus($config->get('nbf_time')))
+            ->canOnlyBeUsedAfter($this->getNowPlus($config->get('nbf_time'))->getTimestamp())
             // Configures the expiration time of the token (nbf claim)
-            ->expiresAt($this->getNowPlus($config->get('nbf_expiration')))
+            ->expiresAt($this->getNowPlus($config->get('nbf_expiration'))->getTimestamp())
             // Set renew expiration (unix timestamp)
             ->withClaim('rexp', $this->getNowPlus($config->get('nbf_refresh_expiration')))
             // Configures a new claim, called "rid"
