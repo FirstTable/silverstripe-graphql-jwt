@@ -286,7 +286,7 @@ class JWTAuthenticator extends MemberAuthenticator
 
         // Find local record for this token
         /** @var JWTRecord $record */
-        $record = JWTRecord::get()->byID($parsedToken->claims()->get('rid'));
+        $record = JWTRecord::get()->byID($parsedToken->getClaim('rid'));
         if (!$record) {
             return [null, Resolver::STATUS_INVALID];
         }
@@ -369,7 +369,7 @@ class JWTAuthenticator extends MemberAuthenticator
      */
     protected function canTokenBeRenewed(Token $parsedToken): bool
     {
-        $renewBefore = $parsedToken->claims()->get('rexp');
+        $renewBefore = $parsedToken->getClaim('rexp');
         return $renewBefore > $this->getNow()->getTimestamp();
     }
 
