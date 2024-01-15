@@ -369,8 +369,7 @@ class JWTAuthenticator extends MemberAuthenticator
      */
     protected function canTokenBeRenewed(Token $parsedToken): bool
     {
-        $renewBefore = $parsedToken->getClaim('rexp');
-        return $renewBefore > $this->getNow()->getTimestamp();
+        return $this->getTokenREXP($parsedToken)->getTimestamp() > $this->getNow()->getTimestamp();
     }
 
     /**
@@ -427,5 +426,17 @@ class JWTAuthenticator extends MemberAuthenticator
     protected function getNowPlus($seconds)
     {
         return $this->getNow()->add(new DateInterval(sprintf("PT%dS", $seconds)));
+    }
+
+    /**
+     * @param Token $token
+     * @return DateTimeImmutable
+     * @throws Exception
+     */
+    protected function getTokenREXP(Token $token): DateTimeImmutable
+    {
+        $renewBefore = $token->getClaim('rexp');
+
+        return new DateTimeImmutable($renewBefore->date);
     }
 }
