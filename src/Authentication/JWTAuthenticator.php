@@ -10,7 +10,6 @@ use Exception;
 use Firesphere\GraphQLJWT\Extensions\MemberExtension;
 use Firesphere\GraphQLJWT\Helpers\MemberTokenGenerator;
 use Firesphere\GraphQLJWT\Model\JWTRecord;
-use Firesphere\GraphQLJWT\Resolvers\Resolver;
 use Firesphere\GraphQLJWT\Types\TokenStatusEnum;
 use Lcobucci\JWT\Token\Builder;
 use Lcobucci\Clock\SystemClock;
@@ -90,7 +89,7 @@ class JWTAuthenticator extends MemberAuthenticator
      * @config
      * @var int
      */
-    private static $nbf_expiration = 30; //TODO: change back to 3600
+    private static $nbf_expiration = 3600;
 
     /**
      * Token can be refreshed within 7 days
@@ -102,7 +101,7 @@ class JWTAuthenticator extends MemberAuthenticator
 
     /**
      * @config
-     * @var Config
+     * @var Configuration
      */
     private $config;
 
@@ -305,7 +304,7 @@ class JWTAuthenticator extends MemberAuthenticator
         // Parse token
         $parsedToken = $this->parseToken($token);
         if (!$parsedToken) {
-            echo 'failed 1';exit;
+//            echo 'failed 1';exit;
             return [null, TokenStatusEnum::STATUS_INVALID];
         }
 
@@ -314,7 +313,7 @@ class JWTAuthenticator extends MemberAuthenticator
 //        $record = DataObject::get_one(JWTRecord::class, ['UID' => $parsedToken->isIdentifiedBy()]);
         $record = JWTRecord::get()->byID($parsedToken->claims()->get('rid'));
         if (!$record) {
-            echo 'failed 2';exit;
+//            echo 'failed 2';exit;
             return [null, TokenStatusEnum::STATUS_INVALID];
         }
 
@@ -327,14 +326,14 @@ class JWTAuthenticator extends MemberAuthenticator
         // If the token is invalid, but not because it has expired, fail
         $now = $this->getNow();
         if (!$parsedToken->isExpired($now)) {
-            echo 'failed 3 - ' . $parsedToken->claims()->get(RegisteredClaims::EXPIRATION_TIME)->format('Y-m-d H:i:s');exit;
+//            echo 'failed 3 - ' . $parsedToken->claims()->get(RegisteredClaims::EXPIRATION_TIME)->format('Y-m-d H:i:s');exit;
             return [$record, TokenStatusEnum::STATUS_INVALID];
         }
 
         // If expired, check if it can be renewed
         $canReniew = $this->canTokenBeRenewed($parsedToken);
         if ($canReniew) {
-            echo 'failed 4';exit;
+//            echo 'failed 4';exit;
             return [$record, TokenStatusEnum::STATUS_EXPIRED];
         }
 
@@ -382,7 +381,6 @@ class JWTAuthenticator extends MemberAuthenticator
      **/
      protected function validateParsedToken(UnencryptedToken $parsedToken, HTTPrequest $request, JWTRecord $record): bool
      {
-     // @todo - upgrade
      // @see https://lcobucci-jwt.readthedocs.io/en/latest/upgrading/#replace-tokenverify-and-tokenvalidate-with-validation-api
 
          $this->config->setValidationConstraints(
