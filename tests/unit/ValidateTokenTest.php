@@ -22,7 +22,7 @@ class ValidateTokenTest extends SapphireTest
 
     protected $token;
 
-    public function setUp()
+    public function setUp(): void
     {
         Environment::putEnv('JWT_SIGNER_KEY=test_signer');
 
@@ -36,7 +36,7 @@ class ValidateTokenTest extends SapphireTest
         $this->token = $response['token'];
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         parent::tearDown();
     }

@@ -26,7 +26,7 @@ class RefreshTokenTest extends SapphireTest
 
     protected $anonymousToken;
 
-    public function setUp()
+    public function setUp(): void
     {
         Environment::setENv('JWT_SIGNER_KEY', 'test_signer');
 
@@ -55,7 +55,7 @@ class RefreshTokenTest extends SapphireTest
         $this->anonymousToken = $response['token'];
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         parent::tearDown();
     }

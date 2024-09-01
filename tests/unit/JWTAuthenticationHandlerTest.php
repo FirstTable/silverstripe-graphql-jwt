@@ -21,7 +21,7 @@ class JWTAuthenticationHandlerTest extends SapphireTest
 
     protected $token;
 
-    public function setUp()
+    public function setUp(): void
     {
         Environment::putEnv('JWT_SIGNER_KEY=test_signer');
 

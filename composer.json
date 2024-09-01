@@ -5,15 +5,15 @@
     "license": "bsd-3-clause",
     "require": {
         "php": ">=7.1",
-        "silverstripe/framework": "^4.3 || ^5",
+        "silverstripe/framework": "^5",
         "silverstripe/graphql": "^4.0 || ^5",
         "lcobucci/jwt": "^4.0.4",
         "ext-json": "*"
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^2.4",
-        "phpunit/phpunit": "^5.7",
-        "scriptfusion/phpunit-immediate-exception-printer": "^1"
+        "friendsofphp/php-cs-fixer": "^2.4 || ^3",
+        "phpunit/phpunit": "^9.6.13 || ^10.0",
+        "scriptfusion/phpunit-immediate-exception-printer": "^2 || ^3"
     },
     "extra": {
         "branch-alias": {

@@ -16,7 +16,7 @@ class CreateTokenTest extends SapphireTest
 
     protected $member;
 
-    public function setUp()
+    public function setUp(): void
     {
         Environment::putEnv('JWT_SIGNER_KEY=test_signer');
 
