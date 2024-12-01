@@ -293,10 +293,8 @@ class JWTAuthenticator extends MemberAuthenticator
             ->withClaim('rid', $record->ID)
             // Set the subject, which is the member
             ->relatedTo($member->getJWTData());
-            // Sign the key with the Signer's key
-//            ->sign($this->getSigner(), $this->getPrivateKey());
 
-        // Return the token
+        // Return the signed token
         return $token->getToken($this->config->signer(), $this->config->signingKey());
     }
 
@@ -331,7 +329,6 @@ class JWTAuthenticator extends MemberAuthenticator
         // If the token is invalid, but not because it has expired, fail
         $now = $this->getNow();
         if (!$parsedToken->isExpired($now)) {
-//            echo 'failed 3 - ' . $parsedToken->claims()->get(RegisteredClaims::EXPIRATION_TIME)->format('Y-m-d H:i:s');exit;
             return [$record, Resolver::STATUS_INVALID];
         }
 
@@ -341,7 +338,6 @@ class JWTAuthenticator extends MemberAuthenticator
             return [$record, Resolver::STATUS_EXPIRED];
         }
 
-//        echo 'failed 5';exit;
         // If expired and cannot be renewed, it's dead
         return [$record, Resolver::STATUS_DEAD];
     }
@@ -368,10 +364,6 @@ class JWTAuthenticator extends MemberAuthenticator
             // Un-parsable tokens are invalid
             return null;
         }
-
-        // Verify this token with configured keys
-//        $verified = $parsedToken->verify($this->getSigner(), $this->getPublicKey());
-//        return $verified ? $parsedToken : null;
     }
 
     /**
