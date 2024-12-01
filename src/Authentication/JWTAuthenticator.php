@@ -288,7 +288,7 @@ class JWTAuthenticator extends MemberAuthenticator
             ->expiresAt($this->getNowPlus($config->get('nbf_expiration')))
             // Set renew expiration
 
-            ->withClaim('rexp', $this->getNowPlus($config->get('nbf_refresh_expiration')))
+            ->withClaim('rexp', $this->getNowPlus($config->get('nbf_refresh_expiration'))->getTimestamp())
             // Configures a new claim, called "rid"
             ->withClaim('rid', $record->ID)
             // Set the subject, which is the member
@@ -457,7 +457,7 @@ class JWTAuthenticator extends MemberAuthenticator
         return $clock->now();
     }
 
-    protected function getNowPlus($seconds)
+    protected function getNowPlus($seconds): DateTimeImmutable
     {
         return $this->getNow()->add(new DateInterval(sprintf("PT%dS", $seconds)));
     }
