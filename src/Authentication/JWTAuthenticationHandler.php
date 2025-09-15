@@ -23,6 +23,8 @@ class JWTAuthenticationHandler implements AuthenticationHandler
 {
     use HeaderExtractor;
     use Injectable;
+	
+    public $JWTAuthenticator;
 
     /**
      * @param HTTPRequest $request
