@@ -7,7 +7,7 @@
         "php": ">=7.1",
         "silverstripe/framework": "^5",
         "silverstripe/graphql": "^4.0 || ^5",
-        "lcobucci/jwt": "^4",
+        "lcobucci/jwt": "^5.3",
         "ext-json": "*"
     },
     "require-dev": {
